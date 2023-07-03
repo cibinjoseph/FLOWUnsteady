@@ -22,6 +22,7 @@ function run_sweptwing(testname;
                         fsgm_vlm    = -1,           # VLM-on-VLM smoothing factor
                         fsgm_surf   = 0.05,         # VLM-on-VPM smoothing factor
                         wake_coupled= true,         # Couple VPM wake and VLM solution
+                        modular     = false,        # Use modular run_simulation()
                         VehicleType = uns.UVLMVehicle, # Vehicle type
                         tol_CL      = 0.025,        # CL error tolerance
                         tol_CD      = 0.110,        # CD error tolerance
@@ -154,7 +155,47 @@ function run_sweptwing(testname;
     # ------------- RUN SIMULATION ---------------------------------------------
     if simverbose; println("\t"^(v_lvl+1)*"Running simulation..."); end;
 
-    pfield = uns.run_simulation(simulation, nsteps;
+    if modular
+        pfield, dt, runtime_function, static_particles_function, 
+        line1, line2, run_id, file_verbose, vprintln, time_beg =
+        uns.initialize_simulation(simulation, nsteps;
+                           # SIMULATION OPTIONS
+                           Vinf=Vinf,
+                           rho=rho,
+                           # SOLVERS OPTIONS
+                           p_per_step=p_per_step,
+                           vlm_init=vlm_init,
+                           wake_coupled=wake_coupled,
+                           sigma_vlm_solver=sigma_vlm_solver,
+                           sigma_vlm_surf=sigma_vlm_surf,
+                           sigma_rotor_surf=sigma_vlm_surf,
+                           sigma_vpm_overwrite=sigma_vpm_overwrite,
+                           max_particles=max_particles,
+                           extra_runtime_function=monitor_wing,
+                           # OUTPUT OPTIONS
+                           save_path=save_path,
+                           run_name=run_name,
+                           prompt=prompt,
+                           raisewarnings=false,
+                           verbose=simverbose, v_lvl=v_lvl+1,
+                           save_horseshoes=!wake_coupled,
+                           optargs...)
+
+        for i = 0:nsteps
+            pfield, breakflag = uns.step_simulation(i, pfield, dt, nsteps,
+                                               runtime_function, static_particles_function,
+                                               vprintln;
+                                               save_path=save_path, run_name=run_name,
+                                               prompt=prompt, verbose=simverbose, 
+                                               v_lvl=v_lvl+1)
+            if breakflag; break; end
+        end
+
+        uns.finalize_simulation(time_beg, line1, vprintln, run_id, v_lvl+1)
+
+
+    else
+        pfield = uns.run_simulation(simulation, nsteps;
                                     # SIMULATION OPTIONS
                                     Vinf=Vinf,
                                     rho=rho,
@@ -176,7 +217,8 @@ function run_sweptwing(testname;
                                     verbose=simverbose, v_lvl=v_lvl+1,
                                     save_horseshoes=!wake_coupled,
                                     optargs...
-                                    )
+                                   )
+    end
 
 
     # ------------- POST-PROCESSING --------------------------------------------

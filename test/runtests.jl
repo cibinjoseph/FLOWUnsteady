@@ -17,6 +17,28 @@ end
 
 
 # ------------ TESTS -----------------------------------------------------------
+@testset verbose=true "Isolated wing modular" begin
+
+    name = "Test VLM solver (modular) — Isolated wing"
+    @test run_sweptwing(name; wake_coupled=false, nsteps=3, modular=true)
+
+    name = "Test VLM regularization (modular) — Isolated wing"
+    @test run_sweptwing(name; wake_coupled=false, fsgm_vlm=0.00125, nsteps=3, modular=true)
+
+    name = "Test VPM+VLM coupling (modular) — Isolated wing"
+    @test run_sweptwing(name; modular=true)
+
+    name = "Test kinematic velocity (modular) — Isolated wing"
+    @test run_sweptwing(name; kinematic=true, modular=true)
+
+    # name = "Test simulation stability — Isolated wing with fine time stepping and shedding"
+    # @test run_sweptwing(name; nsteps=300, p_per_step=4, vlm_rlx=0.75,
+    #                     simverbose=true, disp_plot=true, save_path="sweptwing00")
+
+    name = "Test quasi-steady solver (modular) — Isolated wing"
+    @test run_sweptwing(name; VehicleType=uns.QVLMVehicle, nsteps=10)
+end
+
 @testset verbose=true "Isolated wing" begin
 
     name = "Test VLM solver — Isolated wing"
